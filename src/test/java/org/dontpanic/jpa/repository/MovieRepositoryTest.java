@@ -6,24 +6,46 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
 class MovieRepositoryTest {
 
     @Autowired private MovieRepository repository;
+    @Autowired private TestEntityManager entityManager;
 
     @BeforeEach
     void setUp() {
         initDatabase();
+        // Clear the EntityManager to force loading entities from the database
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
-    void count() {
+    void testCount() {
         assertEquals(8, repository.count());
+    }
+
+    @Test
+    void testFindByTitle() {
+        List<Movie> results = repository.findByTitle("Ghostbusters");
+        assertThat(results, hasSize(1));
+        Movie result = results.get(0);
+        assertThat(result.getTitle(), equalTo("Ghostbusters"));
+        assertThat(result.getStars(), hasSize(4));
+        assertThat(result.getStars(), containsInAnyOrder(
+                hasProperty("lastName", equalTo("Aykroyd")),
+                hasProperty("lastName", equalTo("Hudson")),
+                hasProperty("lastName", equalTo("Murray")),
+                hasProperty("lastName", equalTo("Ramis"))
+        ));
     }
 
     /**
@@ -57,7 +79,6 @@ class MovieRepositoryTest {
         bluesBrothers.addStars(aykroyd, bellushi, fisher);
         ghostbusters.addStars(aykroyd, hudson, murray, ramis);
 
-        repository.save(starWarsIV);
         repository.saveAll(List.of(starWarsIV, starWarsV, starWarsVI, indiana1, indiana2, indiana3, bluesBrothers, ghostbusters));
     }
 }
