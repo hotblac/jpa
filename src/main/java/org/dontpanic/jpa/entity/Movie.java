@@ -2,6 +2,8 @@ package org.dontpanic.jpa.entity;
 
 import jakarta.persistence.*;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -14,7 +16,14 @@ public class Movie {
     private String title;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    private Set<Star> stars;
+    private Set<Star> stars = new HashSet<>();
+
+    public Movie() {
+    }
+
+    public Movie(String title) {
+        this.title = title;
+    }
 
     public Long getId() {
         return id;
@@ -38,5 +47,9 @@ public class Movie {
 
     public void setStars(Set<Star> stars) {
         this.stars = stars;
+    }
+
+    public void addStars(Star... star) {
+        stars.addAll(Arrays.asList(star));
     }
 }

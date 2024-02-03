@@ -2,6 +2,7 @@ package org.dontpanic.jpa.entity;
 
 import jakarta.persistence.*;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -16,7 +17,15 @@ public class Star {
     private String lastName;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    private Set<Movie> movies;
+    private Set<Movie> movies = new HashSet<>();
+
+    public Star() {
+    }
+
+    public Star(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 
     public Long getId() {
         return id;
@@ -48,5 +57,9 @@ public class Star {
 
     public void setMovies(Set<Movie> movies) {
         this.movies = movies;
+    }
+
+    public void addMovie(Movie movie) {
+        movies.add(movie);
     }
 }
