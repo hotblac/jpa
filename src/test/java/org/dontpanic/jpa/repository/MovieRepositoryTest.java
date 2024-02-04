@@ -2,6 +2,7 @@ package org.dontpanic.jpa.repository;
 
 import org.dontpanic.jpa.entity.Movie;
 import org.dontpanic.jpa.entity.Star;
+import org.hibernate.LazyInitializationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
 class MovieRepositoryTest {
@@ -36,6 +38,17 @@ class MovieRepositoryTest {
     @Test
     void testFindByTitle() {
         List<Movie> results = repository.findByTitle("Ghostbusters");
+        entityManager.clear();
+        assertThat(results, hasSize(1));
+        Movie result = results.get(0);
+        assertThat(result.getTitle(), equalTo("Ghostbusters"));
+        assertThrows(LazyInitializationException.class, () -> result.getStars().size());
+    }
+
+    @Test
+    void testFindByTitleEagerFetchStars() {
+        List<Movie> results = repository.findByTitleEagerFetchStars("Ghostbusters");
+        entityManager.clear();
         assertThat(results, hasSize(1));
         Movie result = results.get(0);
         assertThat(result.getTitle(), equalTo("Ghostbusters"));
