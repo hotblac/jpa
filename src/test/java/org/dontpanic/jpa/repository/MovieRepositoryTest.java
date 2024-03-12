@@ -38,7 +38,7 @@ class MovieRepositoryTest {
     @Test
     void testFindByTitle() {
         List<Movie> results = repository.findByTitle("Ghostbusters");
-        entityManager.clear();
+        entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars are lazy loaded
         assertThat(results, hasSize(1));
         Movie result = results.get(0);
         assertThat(result.getTitle(), equalTo("Ghostbusters"));
@@ -48,7 +48,7 @@ class MovieRepositoryTest {
     @Test
     void testFindByTitleEagerFetchStars() {
         List<Movie> results = repository.findByTitleEagerFetchStars("Ghostbusters");
-        entityManager.clear();
+        entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars have been eager loaded
         assertThat(results, hasSize(1));
         Movie result = results.get(0);
         assertThat(result.getTitle(), equalTo("Ghostbusters"));
@@ -59,6 +59,24 @@ class MovieRepositoryTest {
                 hasProperty("lastName", equalTo("Murray")),
                 hasProperty("lastName", equalTo("Ramis"))
         ));
+    }
+
+    /**
+     * This test demonstrates what happens if we use a native SQL query with a join.
+     * We get one Entity result per returned row and none have the joined data attached.
+     * In this case we get 4 Ghostbusters movies, one for each movie / star result.
+     */
+    @Test
+    void testFindByTitleNativeWithoutMapping() {
+        List<Movie> results = repository.findByTitleNative("Ghostbusters");
+        entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars have been eager loaded
+        // Expect 4 Movie objects corresponding to each
+        assertThat(results, hasSize(4));
+        // Expect all results to be Ghostbusters
+        for (Movie movie : results) {
+            assertEquals("Ghostbusters", movie.getTitle());
+            assertThrows(LazyInitializationException.class, () -> movie.getStars().size());
+        }
     }
 
     /**
