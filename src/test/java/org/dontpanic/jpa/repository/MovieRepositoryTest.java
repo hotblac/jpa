@@ -3,6 +3,8 @@ package org.dontpanic.jpa.repository;
 import org.dontpanic.jpa.entity.Movie;
 import org.dontpanic.jpa.entity.Star;
 import org.hibernate.LazyInitializationException;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,13 +24,21 @@ class MovieRepositoryTest {
 
     @Autowired private MovieRepository repository;
     @Autowired private TestEntityManager entityManager;
+    private Statistics statistics;
 
     @BeforeEach
     void setUp() {
+        SessionFactory sf = entityManager.getEntityManager().getEntityManagerFactory().unwrap(SessionFactory.class);
+        statistics = sf.getStatistics();
+
         initDatabase();
         // Clear the EntityManager to force loading entities from the database
         entityManager.flush();
         entityManager.clear();
+
+        // Enable statistics so we can verify execution counts
+        statistics.setStatisticsEnabled(true);
+        statistics.clear();
     }
 
     @Test
@@ -60,6 +70,9 @@ class MovieRepositoryTest {
                 hasProperty("lastName", equalTo("Murray")),
                 hasProperty("lastName", equalTo("Ramis"))
         ));
+
+        // Movie and Star entities were loaded with a single query
+        assertEquals(1, statistics.getQueryExecutionCount());
     }
 
     /**
@@ -76,6 +89,7 @@ class MovieRepositoryTest {
         // Expect all results to be Ghostbusters
         for (Movie movie : results) {
             assertEquals("Ghostbusters", movie.getTitle());
+            // Expect that Star entities are not loaded, even though they were included in the join
             assertThrows(LazyInitializationException.class, () -> movie.getStars().size());
         }
     }
@@ -104,6 +118,9 @@ class MovieRepositoryTest {
                 hasProperty("lastName", equalTo("Murray")),
                 hasProperty("lastName", equalTo("Ramis"))
         ));
+
+        // Movie and Star entities were loaded with a single query
+        assertEquals(1, statistics.getQueryExecutionCount());
     }
 
     /**
