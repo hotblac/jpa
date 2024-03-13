@@ -1,13 +1,30 @@
 package org.dontpanic.jpa.entity;
 
 import jakarta.persistence.*;
+import org.dontpanic.jpa.repository.MovieStarResult;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@NamedNativeQuery(name = "Movie.findByTitleNamedNativeQueryWithResultSetMapping", query = """
+    SELECT m.title m_title, s.first_name s_firstName, s.last_name s_lastName
+    FROM Movie m
+    LEFT JOIN movie_star ms ON m.id = ms.movie_id
+    LEFT JOIN Star s ON ms.star_id = s.id
+    WHERE m.title = :title
+    """, resultSetMapping = "movieStarResult", resultClass = MovieStarResult.class)
+@SqlResultSetMapping(name="movieStarResult", classes = @ConstructorResult(
+        targetClass = MovieStarResult.class,
+        columns = {
+                @ColumnResult(name="m_title"),
+                @ColumnResult(name="s_firstName"),
+                @ColumnResult(name="s_lastName")
+        }
+))
 public class Movie {
+
 
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)

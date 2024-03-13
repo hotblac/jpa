@@ -9,12 +9,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 class MovieRepositoryTest {
@@ -69,7 +70,7 @@ class MovieRepositoryTest {
     @Test
     void testFindByTitleNativeWithoutMapping() {
         List<Movie> results = repository.findByTitleNative("Ghostbusters");
-        entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars have been eager loaded
+        entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars are lazy loaded
         // Expect 4 Movie objects corresponding to each
         assertThat(results, hasSize(4));
         // Expect all results to be Ghostbusters
@@ -77,6 +78,32 @@ class MovieRepositoryTest {
             assertEquals("Ghostbusters", movie.getTitle());
             assertThrows(LazyInitializationException.class, () -> movie.getStars().size());
         }
+    }
+
+    @Test
+    void testFindByTitleNamedNativeQueryWithResultSetMapping() {
+        List<MovieStarResult> results = repository.findByTitleNamedNativeQueryWithResultSetMapping("Ghostbusters");
+        entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars have been eager loaded
+        assertThat(results, hasSize(4));
+
+        // MovieStarResults represent each unique Movie / Star tuple. Merge them to Movie entities with associated Stars
+        Map<String, Movie> movies = new HashMap<>();
+        for (MovieStarResult result : results) {
+            Movie movie = movies.computeIfAbsent(result.getMovieTitle(), Movie::new);
+            movie.addStars(new Star(result.getStarFirstName(), result.getStarLastName()));
+        }
+
+        assertThat(movies.values(), hasSize(1));
+        Movie movie = movies.get("Ghostbusters");
+        assertNotNull(movie);
+        assertThat(movie.getTitle(), equalTo("Ghostbusters"));
+        assertThat(movie.getStars(), hasSize(4));
+        assertThat(movie.getStars(), containsInAnyOrder(
+                hasProperty("lastName", equalTo("Aykroyd")),
+                hasProperty("lastName", equalTo("Hudson")),
+                hasProperty("lastName", equalTo("Murray")),
+                hasProperty("lastName", equalTo("Ramis"))
+        ));
     }
 
     /**

@@ -18,4 +18,7 @@ public interface MovieRepository extends CrudRepository<Movie, Long> {
     WHERE m.title = :title
     """, nativeQuery = true)
     List<Movie> findByTitleNative(String title);
+
+    @Query(nativeQuery = true)
+    List<MovieStarResult> findByTitleNamedNativeQueryWithResultSetMapping(String title);
 }
