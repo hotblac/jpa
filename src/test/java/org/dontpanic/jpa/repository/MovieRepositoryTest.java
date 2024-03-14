@@ -11,9 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -100,15 +98,12 @@ class MovieRepositoryTest {
         entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars have been eager loaded
         assertThat(results, hasSize(4));
 
-        // MovieStarResults represent each unique Movie / Star tuple. Merge them to Movie entities with associated Stars
-        Map<String, Movie> movies = new HashMap<>();
-        for (MovieStarResult result : results) {
-            Movie movie = movies.computeIfAbsent(result.getMovieTitle(), Movie::new);
-            movie.addStars(new Star(result.getStarFirstName(), result.getStarLastName()));
-        }
+        // MovieStarResults represent each unique Movie / Star tuple.
+        // Merge them to a list of unique Movies and Stars and set entity relations.
+        Collection<Movie> movies = MovieStarResult.getMovies(results);
 
-        assertThat(movies.values(), hasSize(1));
-        Movie movie = movies.get("Ghostbusters");
+        assertThat(movies, hasSize(1));
+        Movie movie = movies.iterator().next();
         assertNotNull(movie);
         assertThat(movie.getTitle(), equalTo("Ghostbusters"));
         assertThat(movie.getStars(), hasSize(4));

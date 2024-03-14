@@ -9,7 +9,7 @@ import java.util.Set;
 
 @Entity
 @NamedNativeQuery(name = "Movie.findByTitleNamedNativeQueryWithResultSetMapping", query = """
-    SELECT m.title m_title, s.first_name s_firstName, s.last_name s_lastName
+    SELECT m.id m_id, m.title m_title, s.id s_id, s.first_name s_firstName, s.last_name s_lastName
     FROM Movie m
     LEFT JOIN movie_star ms ON m.id = ms.movie_id
     LEFT JOIN Star s ON ms.star_id = s.id
@@ -18,7 +18,9 @@ import java.util.Set;
 @SqlResultSetMapping(name="movieStarResult", classes = @ConstructorResult(
         targetClass = MovieStarResult.class,
         columns = {
+                @ColumnResult(name="m_id"),
                 @ColumnResult(name="m_title"),
+                @ColumnResult(name="s_id"),
                 @ColumnResult(name="s_firstName"),
                 @ColumnResult(name="s_lastName")
         }
@@ -40,6 +42,11 @@ public class Movie {
     }
 
     public Movie(String title) {
+        this.title = title;
+    }
+
+    public Movie(Long id, String title) {
+        this.id = id;
         this.title = title;
     }
 
