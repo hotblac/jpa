@@ -2,7 +2,6 @@ package org.dontpanic.jpa.repository;
 
 import org.dontpanic.jpa.entity.Movie;
 import org.dontpanic.jpa.entity.Star;
-import org.hibernate.LazyInitializationException;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +50,15 @@ class MovieRepositoryTest {
         assertThat(results, hasSize(1));
         Movie result = results.get(0);
         assertThat(result.getTitle(), equalTo("Ghostbusters"));
-        assertThrows(LazyInitializationException.class, () -> result.getStars().size());
+        assertThat(result.getStars(), containsInAnyOrder(
+                hasProperty("lastName", equalTo("Aykroyd")),
+                hasProperty("lastName", equalTo("Hudson")),
+                hasProperty("lastName", equalTo("Murray")),
+                hasProperty("lastName", equalTo("Ramis"))
+        ));
+
+        // Movie and Star entities were loaded with a single query
+        assertEquals(1, statistics.getQueryExecutionCount());
     }
 
     @Test
@@ -82,14 +89,23 @@ class MovieRepositoryTest {
     void testFindByTitleNativeWithoutMapping() {
         List<Movie> results = repository.findByTitleNative("Ghostbusters");
         entityManager.clear(); // Clear EM to prevent lazy loading. We want to prove that stars are lazy loaded
-        // Expect 4 Movie objects corresponding to each
+        // Expect 4 Movie objects corresponding to each Movie / Star combination
         assertThat(results, hasSize(4));
         // Expect all results to be Ghostbusters
         for (Movie movie : results) {
             assertEquals("Ghostbusters", movie.getTitle());
-            // Expect that Star entities are not loaded, even though they were included in the join
-            assertThrows(LazyInitializationException.class, () -> movie.getStars().size());
+            // Expect that Star entities are loaded, even though they were not included in the native query
+            assertThat(movie.getStars(), hasSize(4));
+            assertThat(movie.getStars(), containsInAnyOrder(
+                    hasProperty("lastName", equalTo("Aykroyd")),
+                    hasProperty("lastName", equalTo("Hudson")),
+                    hasProperty("lastName", equalTo("Murray")),
+                    hasProperty("lastName", equalTo("Ramis"))
+            ));
         }
+
+        // Movie and Star entities were loaded with a single query
+        assertEquals(1, statistics.getQueryExecutionCount());
     }
 
     @Test

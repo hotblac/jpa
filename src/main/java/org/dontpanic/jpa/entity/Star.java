@@ -16,7 +16,7 @@ public class Star {
 
     private String lastName;
 
-    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<Movie> movies = new HashSet<>();
 
     public Star() {
